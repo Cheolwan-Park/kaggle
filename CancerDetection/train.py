@@ -57,7 +57,7 @@ for epoch in range(1, args.epoch+1):
 
         iteration += 1
         if iteration % args.writeinterval == 0:
-            writer.add_scalar('train', {
+            writer.add_scalars('train', {
                 'loss': loss_sum / args.writeinterval
             }, iteration)
             loss_sum = 0
