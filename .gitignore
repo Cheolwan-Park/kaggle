@@ -1,3 +1,7 @@
 venv
 kaggle.json
 .idea
+data
+__pycache__
+*.zip
+runs
