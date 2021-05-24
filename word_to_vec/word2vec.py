@@ -48,12 +48,12 @@ class TrainWord2Vec:
         self.w2v.to(self.device)
         self.criterion.to(self.device)
 
-    def train(self, dataset: W2VTrainDataset, epochs: int, batch_size: int = 16):
+    def train(self, dataset: W2VTrainDataset, epochs: int, batch_size: int = 16, workers: int = 0):
         validation_size = int(len(dataset)*0.01)
         train_dataset, validation_dataset = random_split(dataset, [len(dataset)-validation_size, validation_size])
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        validation_loader = DataLoader(validation_dataset, shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=workers)
+        validation_loader = DataLoader(validation_dataset, shuffle=True, num_workers=workers)
 
         writer = tensorboardX.SummaryWriter()
 
@@ -113,6 +113,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--epochs', type=int, default=128)
     parser.add_argument('--emb_dimension', type=int, default=512)
+    parser.add_argument('--num_workers', type=int, default=0)
     args = parser.parse_args()
 
     dataset = W2VTrainDataset(args.reviews, word_storage_path="word_storage.dat")
@@ -122,6 +123,6 @@ if __name__ == "__main__":
 
     train = TrainWord2Vec(using_device)
     train.prepare(vocab_size=dataset.vocab_size(), emb_dimension=args.emb_dimension, lr=args.lr)
-    train.train(dataset, epochs=args.epochs, batch_size=args.batch_size)
+    train.train(dataset, epochs=args.epochs, batch_size=args.batch_size, each_workers=args.num_workers)
 
 

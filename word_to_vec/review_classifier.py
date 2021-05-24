@@ -49,12 +49,13 @@ class TrainReviewClassifier:
         self.classifier.to(self.device)
         self.criterion.to(self.device)
 
-    def train(self, dataset: ReviewClassifierDataset, epochs: int, batch_size: int = 16, ckpt_interval: int = 5):
+    def train(self, dataset: ReviewClassifierDataset, epochs: int,
+              batch_size: int = 16, ckpt_interval: int = 5, workers: int = 0):
         validation_size = int(len(dataset)*0.01)
         train_dataset, validation_dataset = random_split(dataset, [len(dataset)-validation_size, validation_size])
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        validation_loader = DataLoader(validation_dataset, batch_size=1, shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=workers)
+        validation_loader = DataLoader(validation_dataset, batch_size=1, shuffle=True, num_workers=workers)
 
         writer = tensorboardX.SummaryWriter()
 
@@ -118,6 +119,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--epochs', type=int, default=128)
     parser.add_argument('--max_seq_len', type=int, default=64)
+    parser.add_argument('--num_workers', type=int, default=0)
     args = parser.parse_args()
 
     dataset = ReviewClassifierDataset(args.reviews, args.word_storage, args.max_seq_len)
