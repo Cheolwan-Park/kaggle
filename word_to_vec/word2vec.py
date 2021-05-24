@@ -123,6 +123,6 @@ if __name__ == "__main__":
 
     train = TrainWord2Vec(using_device)
     train.prepare(vocab_size=dataset.vocab_size(), emb_dimension=args.emb_dimension, lr=args.lr)
-    train.train(dataset, epochs=args.epochs, batch_size=args.batch_size, each_workers=args.num_workers)
+    train.train(dataset, epochs=args.epochs, batch_size=args.batch_size, workers=args.num_workers)
 
 
