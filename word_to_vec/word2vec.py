@@ -38,7 +38,6 @@ class TrainWord2Vec:
     def __init__(self, device):
         self.device = device
         self.w2v = Word2Vec()
-        self.center_vector, self.context_vectors = None, None
         self.optimizer = None
         self.criterion = None
 
@@ -82,6 +81,7 @@ class TrainWord2Vec:
 
             validation_loss_value = 0
             validation_cnt = 0
+            self.w2v.eval()
             for x, y in validation_loader:
                 cur_batch_size = x.shape[0]
                 x = x.to(self.device)
@@ -90,13 +90,14 @@ class TrainWord2Vec:
                 output = inner_product.view(cur_batch_size, dataset.vocab_size())
                 validation_loss_value += self.criterion(output, y).item()
                 validation_cnt += cur_batch_size
+            self.w2v.train()
 
             writer.add_scalars('word2vec', {
                 'train': loss_value / cnt,
                 'validation': validation_loss_value / validation_cnt
             }, epoch)
 
-            print(f'epoch {epoch} complete, validation loss: {validation_loss_value/len(validation_loader)}')
+            print(f'epoch {epoch} complete, validation loss: {validation_loss_value / validation_cnt}')
 
         writer.close()
         self.w2v.cpu().eval()
@@ -108,15 +109,19 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--reviews', type=str, required=True)
+    parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--epochs', type=int, default=128)
+    parser.add_argument('--emb_dimension', type=int, default=512)
     args = parser.parse_args()
 
-    dataset = W2VTrainDataset(args.reviews)
+    dataset = W2VTrainDataset(args.reviews, word_storage_path="word_storage.dat")
 
     using_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print('torch device: ' + str(using_device))
 
     train = TrainWord2Vec(using_device)
-    train.prepare(vocab_size=dataset.vocab_size(), emb_dimension=10)
-    train.train(dataset, epochs=16, batch_size=16)
+    train.prepare(vocab_size=dataset.vocab_size(), emb_dimension=args.emb_dimension, lr=args.lr)
+    train.train(dataset, epochs=args.epochs, batch_size=args.batch_size)
 
 

@@ -32,7 +32,8 @@ def get_uniques_from_nested_lists(nested_lists: List[List]) -> List:
 
 def get_item2idx_idx2item(items: List, unique: bool = False) -> Tuple[Dict, Dict]:
     item2idx, idx2item = dict(), dict()
-    items_unique = items if unique else set(items)
+    items_unique = items if unique else list(set(items))
+    items_unique = ['<pad>'] + items_unique
     for idx, item in enumerate(items_unique):
         item2idx[item] = idx
         idx2item[idx] = item
@@ -83,15 +84,22 @@ class WordsStorage:
             self.pairs_matrix.append(self.get_window_pairs(sentence, win_size, as_index))
         self.pairs_flat = list(chain.from_iterable(self.pairs_matrix))
 
+    def save_data(self, filename: str):
+        torch.save({
+            'vocab_size': self.vocab_size,
+            'token2idx': self.token2idx
+        }, filename)
+
 
 class W2VTrainDataset(data.Dataset):
-    def __init__(self, review_filename):
+    def __init__(self, review_filename: str, word_storage_path: str):
         super(W2VTrainDataset, self).__init__()
 
         self.words = WordsStorage()
         self.words.make_tokenized_matrix_eng(review_data_to_texts(review_filename))
         self.words.make_token_indices()
         self.words.make_pairs_matrix(win_size=2, as_index=True)
+        self.words.save_data(word_storage_path)
 
         self.dataset_size = len(self.words.pairs_flat)
 
@@ -109,6 +117,50 @@ class W2VTrainDataset(data.Dataset):
         y = torch.from_numpy(np.array(context_i)).long()
 
         return x, y
+
+    def __len__(self):
+        return self.dataset_size
+
+
+class ReviewClassifierDataset(data.Dataset):
+    def __init__(self, review_filename: str, word_storage_filename: str, max_seq_len: int):
+        super(ReviewClassifierDataset, self).__init__()
+
+        self.max_seq_len = max_seq_len
+
+        word_storage_data = torch.load(word_storage_filename)
+        self.t2i = word_storage_data['token2idx']
+        self.vocab_size = word_storage_data['vocab_size']
+
+        lemm = WordNetLemmatizer
+        self.lemmatizer = lemm.lemmatize
+
+        tsv = pd.read_csv(review_filename, sep='\t', error_bad_lines=False)
+        self.reviews = tsv['review']
+        self.sentiments = tsv['sentiment']
+        self.dataset_size = len(tsv)
+
+    def get_word_idx(self, word):
+        if word not in self.t2i:
+            return None
+        else:
+            return self.t2i[word]
+
+    def get_input_layer(self, word_idx: int):    # one hot encoding
+        layer = torch.zeros(self.vocab_size, 1)
+        layer[word_idx][0] = 1.0
+        return layer
+
+    def __getitem__(self, idx):
+        words = [self.get_word_idx(word) for word in word_tokenize(self.reviews[idx])]
+        words = np.array([word for word in words if word][:self.max_seq_len])
+        if len(words) < self.max_seq_len:
+            words = np.pad(words, (0, self.max_seq_len-len(words)), 'constant', constant_values=0)
+        words = [self.get_input_layer(word) for word in words]
+        words = torch.stack(words)
+        sentiment = np.array([int(self.sentiments[idx])])
+
+        return words.float(), torch.from_numpy(sentiment).float()
 
     def __len__(self):
         return self.dataset_size
