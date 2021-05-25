@@ -10,7 +10,7 @@ from itertools import chain
 from tqdm import tqdm
 
 
-def review_data_to_texts(filename: str):
+def review_data_to_texts(filename: str, count: int = None):
     tsv = pd.read_csv(filename, sep='\t', error_bad_lines=False)
     reviews = tsv['review']
     texts = []
@@ -18,6 +18,8 @@ def review_data_to_texts(filename: str):
         sentences = review.split('.')
         for sentence in sentences:
             texts.append(re.sub(pattern='(?:\\|<[^>]*>|")', repl='', string=sentence))
+    if count is not None:
+        texts = texts[:count]
     return texts
 
 
@@ -92,11 +94,11 @@ class WordsStorage:
 
 
 class W2VTrainDataset(data.Dataset):
-    def __init__(self, review_filename: str, word_storage_path: str):
+    def __init__(self, review_filename: str, word_storage_path: str, texts_cnt: int):
         super(W2VTrainDataset, self).__init__()
 
         self.words = WordsStorage()
-        self.words.make_tokenized_matrix_eng(review_data_to_texts(review_filename))
+        self.words.make_tokenized_matrix_eng(review_data_to_texts(review_filename, count=texts_cnt))
         self.words.make_token_indices()
         self.words.make_pairs_matrix(win_size=2, as_index=True)
         self.words.save_data(word_storage_path)

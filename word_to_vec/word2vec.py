@@ -110,13 +110,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--reviews', type=str, required=True)
     parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--texts_cnt', type=int, default=150000)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--epochs', type=int, default=128)
     parser.add_argument('--emb_dimension', type=int, default=512)
     parser.add_argument('--num_workers', type=int, default=0)
     args = parser.parse_args()
 
-    dataset = W2VTrainDataset(args.reviews, word_storage_path="word_storage.dat")
+    dataset = W2VTrainDataset(args.reviews, word_storage_path="word_storage.dat", texts_cnt=args.texts_cnt)
 
     using_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print('torch device: ' + str(using_device))
