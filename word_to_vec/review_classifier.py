@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     train = TrainReviewClassifier(using_device)
     w2v = Word2Vec()
-    w2v.prepare(vocab_size=dataset.vocab_size, emb_dimension=128)
+    w2v.prepare(vocab_size=dataset.vocab_size, emb_dimension=256)
     w2v.load_state_dict(torch.load(args.w2v))
     train.prepare(hidden_size=args.hidden_size, max_seq_len=args.max_seq_len, w2v=w2v, lr=args.lr)
     train.train(dataset, epochs=args.epochs, batch_size=args.batch_size, ckpt_interval=5)
