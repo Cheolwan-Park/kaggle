@@ -119,7 +119,9 @@ class TrainReviewClassifier:
                 'validation_fpr': validation_fpr
             }, epoch)
 
-            print(f'epoch {epoch} complete, validation loss: {validation_loss}, acc: {validation_acc}')
+            print(f'epoch {epoch} complete')
+            print(f'validation loss: {validation_loss}, acc: {validation_acc}')
+            print(f'tpr: {validation_tpr}, fpr: {validation_fpr}')
 
             if (epoch + 1) % ckpt_interval == 0:
                 torch.save(self.classifier.state_dict(), f'/ckpts/classifier_ckpt_{epoch}.pt')
