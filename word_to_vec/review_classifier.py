@@ -82,22 +82,44 @@ class TrainReviewClassifier:
 
             validation_loss_value = 0
             validation_cnt = 0
+            correct_cnt = 0
+            positive_cnt = 0
+            false_positive_cnt = 0
+            true_positive_cnt = 0
+            threshold = 0.5
             self.classifier.eval()
             for words, sentiment in validation_loader:
-                cur_batch_size = words.shape[0]
                 words = words.to(self.device)
                 y = sentiment.to(self.device)
                 predict = self.classifier(words, self.device)
                 validation_loss_value += self.criterion(predict, y).item()
-                validation_cnt += cur_batch_size
-            self.classifier.train()
 
+                if predict.item() > threshold:
+                    if y.item() == 1:
+                        correct_cnt += 1
+                        true_positive_cnt += 1
+                    else:
+                        false_positive_cnt += 1
+                    positive_cnt += 1
+                elif y.item() != 1:
+                    correct_cnt += 1
+                validation_cnt += 1
+
+            self.classifier.train()
+            positive_cnt = 0 if positive_cnt == 0 else positive_cnt
+            validation_loss = validation_loss_value / validation_cnt
+            validation_acc = correct_cnt / validation_cnt
+            validation_tpr = true_positive_cnt / positive_cnt
+            validation_fpr = false_positive_cnt / positive_cnt
             writer.add_scalars('review classify', {
                 'train': loss_value / cnt,
-                'validation': validation_loss_value / validation_cnt
+                'validation_loss': validation_loss,
+                'validation_acc': validation_acc,
+                'validation_tpr': validation_tpr,
+                'validation_fpr': validation_fpr
             }, epoch)
 
-            print(f'epoch {epoch} complete, validation loss: {validation_loss_value / validation_cnt}')
+            print(f'epoch {epoch} complete, validation loss: {validation_loss}, acc: {validation_acc}')
 
             if (epoch + 1) % ckpt_interval == 0:
                 torch.save(self.classifier.state_dict(), f'/ckpts/classifier_ckpt_{epoch}.pt')
